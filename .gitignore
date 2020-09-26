@@ -1,3 +1,7 @@
 .idea/
 target/
 LocateReborn.iml
+studentdata.csv
+coursedata.csv
+translated-coursedata.csv
+translated-studentdata.csv

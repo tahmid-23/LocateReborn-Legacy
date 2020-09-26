@@ -1,4 +1,4 @@
-package me.thamid.data
+package me.thamid.generator.data
 
 /**
  * Parses a list of mod boundaries
@@ -43,9 +43,10 @@ private fun parseDays(courseScheduleData: List<String>): Array<Boolean> {
  * A BCA course
  *
  * @constructor Creates a BCA course object representation
+ * @param id The id of the course
  * @param courseText The text to parse to create a course
  */
-class Course(courseText: String) {
+class Course(val id: String, courseText: String) {
 
     /**
      * The name of the course
