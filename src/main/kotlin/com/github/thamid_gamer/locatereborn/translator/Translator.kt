@@ -1,4 +1,4 @@
-package me.thamid.translator
+package com.github.thamid_gamer.locatereborn.translator
 
 import java.io.File
 
@@ -28,7 +28,7 @@ private fun createCourseIdMap(courseData: MutableList<String>): Map<String, Stri
     val courseIdMap = mutableMapOf<String, String>()
 
     for (x in courseData.indices) {
-        val components = courseData[x].split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)".toRegex())
+        val components = courseData[x].split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)".toRegex()) // Regex by https://stackoverflow.com/questions/18893390/splitting-on-comma-outside-quotes accepted answer
         courseIdMap[components[0]] = "${components[1].split(":")[0]}\""
         courseData[x] = components.drop(1).joinToString(",")
     }

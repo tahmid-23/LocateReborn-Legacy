@@ -1,8 +1,8 @@
-package me.thamid.generator
+package com.github.thamid_gamer.locatereborn.generator
 
 import com.google.gson.Gson
 import com.google.gson.JsonObject
-import me.thamid.generator.data.Course
+import com.github.thamid_gamer.locatereborn.generator.data.Course
 import org.jsoup.Connection
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -105,7 +105,7 @@ private fun buildStudentList(cookies: Map<String, String>, page: Int): Document?
         200 -> response.parse()
         429 -> {
             val timeout = response.header("Retry-After").toLong()
-            Thread.sleep(1000 + timeout)
+            Thread.sleep(timeout + 250)
 
             request.get()
         }
@@ -212,13 +212,16 @@ private fun getCourseInfo(id: String, cookies: Map<String, String>): Document? {
  * @return A parsed document containing course info
  */
 private fun parseCourseInfoResponse(request: Connection, response: Connection.Response): Document? {
-    return Jsoup.parse(Gson().fromJson(if (response.statusCode() == 200) {
-        response.body()
-    } else {
-        Thread.sleep(1000 + response.header("Retry-After").toLong())
+    return Jsoup.parse(Gson().fromJson(
+            when(response.statusCode()) {
+                200 -> response.body()
+                429 -> {
+                    Thread.sleep(250 + response.header("Retry-After").toLong())
 
-        request.execute().body()
-    }, JsonObject::class.java).get("content").asString)
+                    request.execute().body()
+                }
+                else -> null
+            }, JsonObject::class.java).get("content").asString)
 }
 
 /**

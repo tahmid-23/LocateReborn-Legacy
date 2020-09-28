@@ -1,4 +1,4 @@
-package me.thamid.generator.data
+package com.github.thamid_gamer.locatereborn.generator.data
 
 /**
  * Parses a list of mod boundaries
