@@ -1,13 +1,15 @@
 package com.github.thamid_gamer.locatereborn.translator
 
-import java.io.File
+import kotlin.io.path.Path
+import kotlin.io.path.readLines
+import kotlin.io.path.writeText
 
 /**
  * Translates the IDs in coursedata.csv and student.csv to the actual course/student names
  */
 fun translate() {
-    val courseData = File("coursedata.csv").readLines().toMutableList()
-    val studentData = File("studentdata.csv").readLines().toMutableList()
+    val courseData = Path("coursedata.csv").readLines().toMutableList()
+    val studentData = Path("studentdata.csv").readLines().toMutableList()
 
     val courseIdMap = createCourseIdMap(courseData)
     val studentIdMap = createStudentIdMap(studentData)
@@ -45,10 +47,10 @@ private fun createCourseIdMap(courseData: MutableList<String>): Map<String, Stri
 private fun createStudentIdMap(studentData: MutableList<String>): Map<String, String> {
     val studentIdMap = mutableMapOf<String, String>()
 
-    for (x in 0 until (studentData.size + 1) / 30) {
-        val components = studentData[30 * x].split(",")
+    for (x in 0 until (studentData.size + 1) / 12) {
+        val components = studentData[12 * x].split(",")
         studentIdMap[components[0]] = components[1]
-        studentData[30 * x] = components[1]
+        studentData[12 * x] = components[1]
     }
 
     return studentIdMap
@@ -79,19 +81,19 @@ private fun replaceStudentIds(courseData: MutableList<String>, studentIdMap: Map
  * @param courseIdMap A map of course IDs to course names
  */
 private fun replaceCourseIds(studentData: MutableList<String>, courseIdMap: Map<String, String>) {
-    for (x in 0 until (studentData.size + 1) / 30) {
-        for (y in 0 until 30) {
+    for (x in 0 until (studentData.size + 1) / 12) {
+        for (y in 0 until 12) {
             when (y) {
-                0, 1, 30 -> continue
+                0, 1 -> continue
                 else -> {
-                    val components = studentData[30 * x + y].split(",").toMutableList()
+                    val components = studentData[12 * x + y].split(",").toMutableList()
 
                     for (z in 1 until components.size) {
                         courseIdMap[components[z]]?.let {
                             components[z] = it
                         }
                     }
-                    studentData[30 * x + y] = components.joinToString(",")
+                    studentData[12 * x + y] = components.joinToString(",")
                 }
             }
         }
@@ -105,6 +107,6 @@ private fun replaceCourseIds(studentData: MutableList<String>, courseIdMap: Map<
  * @param studentData The new student data
  */
 private fun printTranslatedData(courseData: List<String>, studentData: List<String>) {
-    File("translated-coursedata.csv").writeText(courseData.joinToString(System.lineSeparator()))
-    File("translated-studentdata.csv").writeText(studentData.joinToString(System.lineSeparator()))
+    Path("translated-coursedata.csv").writeText(courseData.joinToString(System.lineSeparator()))
+    Path("translated-studentdata.csv").writeText(studentData.joinToString(System.lineSeparator()))
 }

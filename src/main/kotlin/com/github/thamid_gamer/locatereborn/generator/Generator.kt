@@ -8,20 +8,20 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.io.BufferedReader
-import java.io.File
 import java.io.InputStreamReader
 import java.io.PrintWriter
+import kotlin.io.path.Path
+import kotlin.io.path.bufferedWriter
 import kotlin.math.ceil
 
 /**
  * Generates BCA Schoology course information
  */
 fun generate() {
-    val input = BufferedReader(InputStreamReader(System.`in`))
-
-    File("studentdata.csv").printWriter().use {
-        queryData(input, it)
-        it.close()
+    BufferedReader(InputStreamReader(System.`in`)).use { input ->
+        PrintWriter(Path("studentdata.csv").bufferedWriter()).use { pw ->
+            queryData(input, pw)
+        }
     }
 }
 
@@ -29,16 +29,16 @@ fun generate() {
  * Queries a username and password from the user and attempts to log in
  *
  * @param input Input reader of stdin
- * @param out Outputs to studentdata.csv
+ * @param output Outputs to studentdata.csv
  */
-private fun queryData(input: BufferedReader, out: PrintWriter) {
+private fun queryData(input: BufferedReader, output: PrintWriter) {
     println("Please enter your username.")
     val username = input.readLine()
     println("Please enter your password.")
     val password = input.readLine()
 
     login(username, password)?.let {
-        printCourseData(input, out, it.cookies())
+        printCourseData(input, output, it.cookies())
     }
 }
 
@@ -49,15 +49,17 @@ private fun queryData(input: BufferedReader, out: PrintWriter) {
  * @param password Self-explanatory
  * @return The result of the login
  */
-private fun login(username: String, password: String): Connection.Response? {
-    val connection = Jsoup.connect("https://bca.schoology.com/login/ldap?&school=11897239")
-    connection.method(Connection.Method.POST)
-
-    val params = mapOf("mail" to username, "pass" to password, "school_nid" to "11897239", "form_build_id" to "489d854-djh1fsa2DkrmcVrso_nzX105TaBTc4arsSHbbof2FZI", "form_id" to "s_user_login_form")
-    connection.data(params)
-
-    return connection.execute()
-}
+private fun login(username: String, password: String): Connection.Response? = Jsoup
+        .connect("https://bca.schoology.com/login/ldap?&school=11897239")
+        .method(Connection.Method.POST)
+        .data(mapOf(
+            "mail" to username,
+            "pass" to password,
+            "school_nid" to "11897239",
+            "form_build_id" to "489d854-djh1fsa2DkrmcVrso_nzX105TaBTc4arsSHbbof2FZI",
+            "form_id" to "s_user_login_form"
+        ))
+        .execute()
 
 /**
  * Prints out all relevant data to studentdata.csv and coursedata.csv
@@ -70,12 +72,19 @@ private fun printCourseData(input: BufferedReader, out: PrintWriter, cookies: Ma
     val doc = Jsoup.connect("https://bca.schoology.com/group/2233228305/members").cookies(cookies).get()
     val pages = doc.getElementsByClass("total")
 
-    if (pages.size > 0) {
+    if (pages.isNotEmpty()) {
         val courseStudentMap = mutableMapOf<String, String>()
         for (x in 1..ceil(pages[0].text().toDouble() / 30).toInt()) {
-
-            buildStudentList(cookies, x)?.getElementsByAttributeValue("role", "presentation")?.first()?.child(0)?.let {
-                printStudentCourses(it, cookies, out, courseStudentMap)
+            try {
+                buildStudentList(cookies, x)
+                    ?.getElementsByAttributeValue("role", "presentation")
+                    ?.first()
+                    ?.child(0)
+                    ?.let {
+                        printStudentCourses(it, cookies, out, courseStudentMap)
+                    }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
         printCourseMembers(courseStudentMap)
@@ -93,11 +102,12 @@ private fun printCourseData(input: BufferedReader, out: PrintWriter, cookies: Ma
  * @return The list of students
  */
 private fun buildStudentList(cookies: Map<String, String>, page: Int): Document? {
-    val request = Jsoup.connect("https://bca.schoology.com/enrollments/edit/members/group/2233228305/ajax")
-            .method(Connection.Method.GET)
-            .cookies(cookies)
-            .ignoreHttpErrors(true)
-            .data(mapOf("ss" to "", "p" to page.toString()))
+    val request = Jsoup
+        .connect("https://bca.schoology.com/enrollments/edit/members/group/2233228305/ajax")
+        .method(Connection.Method.GET)
+        .cookies(cookies)
+        .ignoreHttpErrors(true)
+        .data(mapOf("ss" to "", "p" to page.toString()))
 
     val response = request.execute()
 
@@ -128,11 +138,11 @@ private fun printStudentCourses(studentList: Element, cookies: Map<String, Strin
         getCourseInfo(id, cookies)?.getElementsByClass("my-courses-item-list")?.first()?.let {
             val name = courseLink.text()
             out.println("$id,$name")
-            out.println("Mod, Monday, Tuesday, Wednesday, Thursday, Friday")
+            out.println("Period, Monday, Tuesday, Wednesday, Thursday, Friday")
 
             val courses = mutableListOf<Course>()
             addCourseInfo(id, it, courseStudentMap, courses)
-            printMods(out, courses)
+            printPeriods(out, courses)
 
             out.println()
         }
@@ -154,7 +164,12 @@ private fun addCourseInfo(id: String, courseList: Element, courseStudentMap: Mut
         val courseName = courseRef.ownText()
         val courseObject = Course(courseId, courseName)
 
-        if (courseStudentMap[courseId] == null) courseStudentMap[courseId] = ",\"$courseName\",$id" else courseStudentMap[courseId] += ",$id"
+        if (courseStudentMap[courseId] == null) {
+            courseStudentMap[courseId] = ",\"$courseName\",$id"
+        }
+        else {
+            courseStudentMap[courseId] += ",$id"
+        }
 
         courses.add(courseObject)
     }
@@ -166,13 +181,13 @@ private fun addCourseInfo(id: String, courseList: Element, courseStudentMap: Mut
  * @param out Outputs to studentdata.csv
  * @param courses The student's courses
  */
-private fun printMods(out: PrintWriter, courses: MutableList<Course>) {
-    for (x in 1..27) {
+private fun printPeriods(out: PrintWriter, courses: MutableList<Course>) {
+    for (x in 1..9) {
         out.print("$x,")
 
         val appendCourses = arrayOf("", "", "", "", "")
         for (course in courses) {
-            if (course.mods.contains(x)) {
+            if (course.periods.contains(x)) {
                 for (y in 0..4) {
                     if (course.days[y]) {
                         appendCourses[y] = course.id
@@ -193,15 +208,19 @@ private fun printMods(out: PrintWriter, courses: MutableList<Course>) {
  * @return The course's information
  */
 private fun getCourseInfo(id: String, cookies: Map<String, String>): Document? {
-    val request = Jsoup.connect("https://bca.schoology.com/user/$id/courses/list")
-            .method(Connection.Method.GET)
-            .cookies(cookies)
-            .ignoreHttpErrors(true)
-            .data("destination", "${id.substring(1)}/info")
-            .header("X-Drupal-Render-Mode", "json/popups")
+    val request = Jsoup
+        .connect("https://bca.schoology.com/user/$id/courses/list")
+        .method(Connection.Method.GET)
+        .cookies(cookies)
+        .ignoreHttpErrors(true)
+        .data("destination", "${id.substring(1)}/info")
+        .header("X-Drupal-Render-Mode", "json/popups")
 
     val response = request.execute()
-    return if (response.statusCode() == 200 || response.statusCode() == 429) parseCourseInfoResponse(request, response) else null
+    return when (response.statusCode()) {
+        200, 429 -> parseCourseInfoResponse(request, response)
+        else -> null
+    }
 }
 
 /**
@@ -211,18 +230,19 @@ private fun getCourseInfo(id: String, cookies: Map<String, String>): Document? {
  * @param response The response of the original request
  * @return A parsed document containing course info
  */
-private fun parseCourseInfoResponse(request: Connection, response: Connection.Response): Document? {
-    return Jsoup.parse(Gson().fromJson(
-            when(response.statusCode()) {
-                200 -> response.body()
-                429 -> {
-                    Thread.sleep(250 + response.header("Retry-After").toLong())
+private fun parseCourseInfoResponse(request: Connection, response: Connection.Response): Document? = Jsoup.parse(
+    Gson().fromJson(
+        when(response.statusCode()) {
+            200 -> response.body()
+            429 -> {
+                Thread.sleep(250 + response.header("Retry-After").toLong())
 
-                    request.execute().body()
-                }
-                else -> null
-            }, JsonObject::class.java).get("content").asString)
-}
+                request.execute().body()
+            }
+            else -> null
+                                    }, JsonObject::class.java
+    ).get("content").asString
+)
 
 /**
  * Prints out a list of courses and their students to coursedata.csv
@@ -230,10 +250,9 @@ private fun parseCourseInfoResponse(request: Connection, response: Connection.Re
  * @param courseStudentMap A map of courses and a comma separated list of its students
  */
 private fun printCourseMembers(courseStudentMap: MutableMap<String, String>) {
-    File("coursedata.csv").printWriter().use { it ->
+    PrintWriter(Path("coursedata.csv").bufferedWriter()).use {
         for (course in courseStudentMap) {
             it.println("${course.key}${course.value}")
         }
-        it.close()
     }
 }
