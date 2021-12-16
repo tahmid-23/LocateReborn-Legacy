@@ -163,7 +163,7 @@ private fun printStudentCourses(
         val courseLink = student.child(1).child(0)
         val id = courseLink.attr("href").substring(6)
         val name = courseLink.text()
-        if (name !in usedStudents) {
+        if (id !in usedStudents) {
             getCourseInfo(id, cookies)?.getElementsByClass("my-courses-item-list")?.first()?.let {
                 out.println("$id,$name")
                 out.println("Period, Monday, Tuesday, Wednesday, Thursday, Friday")
@@ -174,7 +174,7 @@ private fun printStudentCourses(
 
                 out.println()
 
-                usedStudents.add(name)
+                usedStudents.add(id)
             }
         }
     }
