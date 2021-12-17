@@ -198,17 +198,73 @@ private fun addCourseInfo(
         val courseRef = course.child(0).child(1).child(0)
         val courseId = courseRef.attr("href").substring(8)
         val courseName = courseRef.ownText()
-        val courseObject = Course(courseId, courseName)
 
-        if (courseStudentMap[courseId] == null) {
-            courseStudentMap[courseId] = ",\"$courseName\",$id"
-        }
-        else {
-            courseStudentMap[courseId] += ",$id"
-        }
+        val components = courseName.split(":").toMutableList()
+        val name = components[0]
 
-        courses.add(courseObject)
+        while (true) {
+            var periods: Array<Int>
+            var days: Array<Boolean>
+            try {
+                val courseScheduleData = components[1].trim()
+                val periodData = courseScheduleData.substringBefore("(")
+                val dayData = courseScheduleData.substringAfter("(").substringBefore(")")
+
+                periods = parsePeriods(periodData)
+                days = parseDays(dayData)
+                components[1] = components[1]
+                    .substringAfter(")")
+                    .substringAfter(",", "")
+            } catch (e: IndexOutOfBoundsException) {
+                break
+            } catch (e: NumberFormatException) {
+                break
+            }
+
+            if (courseStudentMap[courseId] == null) {
+                courseStudentMap[courseId] = ",\"$courseName\",$id"
+            } else {
+                courseStudentMap[courseId] += ",$id"
+            }
+
+            courses.add(Course(courseId, name, periods, days))
+        }
     }
+}
+
+/**
+ * Parses a list of mod boundaries
+ *
+ * @param periodData Data pertaining to the period
+ * @return An array of mods during which the course takes place
+ */
+private fun parsePeriods(periodData: String): Array<Int> {
+    return arrayOf(periodData.toInt())
+}
+
+/**
+ * Parses a list of day boundaries
+ *
+ * @param dayData Data pertaining to the days
+ * @return An array of booleans indicating on which days the course is held
+ */
+private fun parseDays(dayData: String): Array<Boolean> {
+    val dateString = "ABCDE"
+    val days = arrayOf(false, false, false, false, false)
+
+    for (day in dayData.split(",")) {
+        if (day.length == 1) {
+            days[dateString.indexOf(day)] = true
+        } else {
+            val dayInterval = day.split("-")
+
+            for (x in dateString.indexOf(dayInterval[0])..dateString.indexOf(dayInterval[1])) {
+                days[x] = true
+            }
+        }
+    }
+
+    return days
 }
 
 /**
