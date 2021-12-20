@@ -18,7 +18,7 @@ dependencies {
 }
 
 application {
-    mainClass.set("com.github.thamid_gamer.locatereborn.LocateReborn")
+    mainClass.set("com.github.thamid_gamer.locatereborn.LocateRebornKt")
 }
 
 group = "com.github.thamid_gamer"

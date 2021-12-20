@@ -274,7 +274,7 @@ private fun parseDays(dayData: String): Array<Boolean> {
  * @param courses The student's courses
  */
 private fun printPeriods(out: PrintWriter, courses: Collection<Course>) {
-    for (x in 1..9) {
+    for (x in 1..10) {
         out.print("$x,")
 
         val appendCourses = arrayOf("", "", "", "", "")
@@ -300,19 +300,29 @@ private fun printPeriods(out: PrintWriter, courses: Collection<Course>) {
  * @return The course's information
  */
 private fun getCourseInfo(id: String, cookies: Map<String, String>): Document? {
-    val request = Jsoup
-        .connect("https://bca.schoology.com/user/$id/courses/list")
-        .method(Connection.Method.GET)
-        .cookies(cookies)
-        .ignoreHttpErrors(true)
-        .data("destination", "${id.substring(1)}/info")
-        .header("X-Drupal-Render-Mode", "json/popups")
+    var count = 0
 
-    val response = request.execute()
-    return when (response.statusCode()) {
-        200, 429 -> parseCourseInfoResponse(request, response)
-        else -> null
+    while (count < 10) {
+        val request = Jsoup
+                .connect("https://bca.schoology.com/user/$id/courses/list")
+                .method(Connection.Method.GET)
+                .cookies(cookies)
+                .ignoreHttpErrors(true)
+                .data("destination", "${id.substring(1)}/info")
+                .header("X-Drupal-Render-Mode", "json/popups")
+
+        val response = request.execute()
+        if (response.statusCode() == 200 || response.statusCode() == 429) {
+            val parsed = parseCourseInfoResponse(request, response)
+            if (parsed != null) {
+                return parsed
+            }
+        }
+
+        println("${++count} failed attempts")
     }
+
+    return null
 }
 
 /**
