@@ -221,13 +221,13 @@ private fun addCourseInfo(
                 break
             }
 
-            if (courseStudentMap[courseId] == null) {
-                courseStudentMap[courseId] = ",\"$courseName\",$id"
-            } else {
-                courseStudentMap[courseId] += ",$id"
-            }
-
             courses.add(Course(courseId, name, periods, days))
+        }
+
+        if (courseStudentMap[courseId] == null) {
+            courseStudentMap[courseId] = ",\"$courseName\",$id"
+        } else {
+            courseStudentMap[courseId] += ",$id"
         }
     }
 }
